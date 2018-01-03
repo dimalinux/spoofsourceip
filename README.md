@@ -32,9 +32,19 @@ granted the needed permissions to run `udpspoof` without sudo.
 to run on ports >= 1024.
 
 #### Download/install
+Install `udpreceiver` and `udpspoof`:
 ```
-$ go get github.com/dimalinux/spoofsourceip/...
+$ go get -u github.com/dimalinux/spoofsourceip/...
 ```
+Only build/install the receiver (which does not depend on libpcap-dev):
+```
+go get -u github.com/dimalinux/spoofsourceip/udpreceiver
+```
+Only build/install the sender:
+```
+go get -u github.com/dimalinux/spoofsourceip/udpspoof
+```
+
 The binaries will be in $GOPATH/bin/ and the source in
 $GOPATH/src/dimalinux/spoofsourceip.
 
