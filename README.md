@@ -18,23 +18,28 @@ installation needed to build gopacket projects on Windows can be
 complicated, but it's fairly easy on Linux and macOS.
 
 #### Permissions
-To run `udpspoof` your user needs access to the BPF device (Berkley Packet
-Filter) or the command needs to be run as root.  While it needs these
-permissions to inject raw packets, it does not put your network adapter
-in promiscuous mode.
-
-On Linux systems you can assign the capabilities to run `udpspoof`
-without root directly to the executable:
+`udpspoof` creates raw packets which requires special permissions. If
+you don't wish to use `sudo` or run `udpspoof` as root, you can
+assign the needed capability directly to the executable on Linux
+systems:
 ```
 $ sudo setcap 'CAP_NET_RAW+eip' $GOPATH/bin/udpspoof
 ```
+On macOS, if you installed Wireshark, your user was most likely already
+granted the needed permissions to run `udpspoof` without sudo.
 
 `udpreceiver` does not use gopacket and requires no special permissions
 to run on ports >= 1024.
 
+#### Download/install
+```
+$ go get github.com/dimalinux/spoofsourceip/...
+```
+The binaries will be in $GOPATH/bin/ and the source in
+$GOPATH/src/dimalinux/spoofsourceip.
+
 
 ## UDP Receiver (udpreceiver)
-
 You can test if your spoofed datagrams are getting through with
 `udpreceiver`.  It does not depend on `libpcap-dev` and is easy to build
 and run anywhere.  By default, udpreceiver listens for UDP datagrams on
@@ -53,17 +58,29 @@ In response to the above command, udpreceiver will show output like this:
 
 ## UDP Spoofer (udpspoof)
 
-### Options
-Use `udpspoof --help` to get the output below:
+`udpspoof` injects a UDP packet at the Ethernet frame level on the interface
+specified by the --interface (-i) flag.  For `udpspoof` to work, the
+destination MAC needs to be different from the MAC address of the interface
+performing the injection.  Either use 2 hosts, or a single host with
+multiple interfaces (e.g. a host with both wired and wireless interfaces).
+
+You cannot use the loopback interface for testing, as the loopback
+interface operates above the ethernet frame level and has no MAC address.
+
+The source MAC and source IP are both spoofable.
+
+View the full options list with the `--help` flag:
 ```
+$ udpspoof --help
 Usage of udpspoof:
-      --dest-ip string       Destination IP address (default uses an address on the local --interface device)
-      --dest-mac string      MAC address of the destination IP or gateway (default uses the source MAC)
+  -i, --interface string     Network interface for packet injection (default "en0")
+      --source-mac string    MAC address in the Ethernet frame source (default is not spoofed)
+      --source-ip string     Sending address in the IP header (default is not spoofed)
+      --source-port uint16   UDP Source port (default 9999)
+      --dest-mac string      MAC address of the destination IP or gateway (required)
+      --dest-ip string       Destination IP address (required)
       --dest-port uint16     Destination port (default 8888)
-  -i, --interface string     Local network device name that will send the packet (default "en0")
-  -p, --payload string       UDP payload specified in hex with no leading '0x' (default "DEADBEEF")
-      --source-ip string     [Spoofed] Sending address in the packet's IP header (default "8.8.8.8")
-      --source-port uint16   [Spoofed] Source port (default 9999)```
+  -p, --payload string       UDP payload specified in hex (default "DEADBEEF")
 ```
 
 ### Full example: Receive DNS response on different host than request
@@ -86,27 +103,27 @@ destination hardware MAC address to the local network MAC on our
 router-gateway.
 
 On macOS and Linux, you can use the `arp` command to retrieve the MAC
-address of your gateway:
+address of your gateway (or any local peer by IP):
 ```
 $ arp 45.63.20.1
 Address             HWtype  HWaddress           Flags Mask        Iface
 45.63.20.1          ether   fe:00:01:4a:6f:91   C                 ens3
 ```
 
-Run the query on host1 with the source IP/port set to the values for
+Run the DNS query on host1 with the source IP/port set to the values for
 the UDP receiver on host2.  The destination IP, 8.8.8.8 (Google's public
 DNS server), is not on your local network, so set the destination MAC
 address to your gateway router's LAN MAC address.
 
 ```
-host1 $ udpspoof -i HOST1_LOCAL_INTERFACE \
+host1 $ udpspoof -i LOCAL_NETWORK_INTERFACE \
            --source-ip HOST2_IP --source-port 8888
            --dest-ip 8.8.8.8 --dest-port 53
            --dest-mac YOUR_GATEWAY_ROUTERS_LAN_MAC_ADDR
            --payload 519f012000010000000000010377777706676f6f676c6503636f6d00000100010000291000000000000000
 ```
 
-After issuing the query from host1, host2, will get a response like this
+After issuing the DNS query from host1, host2, will get a response like this
 one.
 ```
 2018/01/01 11:38:24 Datagram received from=8.8.8.8:53 truncated=false payloadHex=519f818000010001000000010377777706676f6
@@ -119,5 +136,5 @@ different.
 Note 2: In most cases, the above example will work even if host1 and
 host 2 are sitting behind a NAT firewall.  The source IP will be
 replaced by the NAT router's IP before the query is sent to Google.
-When Google sends the DNS response, the NAT router will send it to
-the forged source IP that was put in the request.
+When Google sends the DNS response, the NAT router will forward it to
+the forged source IP of the original DNS request.

@@ -9,6 +9,7 @@ import (
 )
 
 const maxPayload = 1040
+
 var bindAddress = ":8888" // Default listen on all IPv4 and IPv6 addresses
 
 func init() {
