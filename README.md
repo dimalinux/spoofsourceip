@@ -46,7 +46,7 @@ go get -u github.com/dimalinux/spoofsourceip/udpspoof
 ```
 
 The binaries will be in $GOPATH/bin/ and the source in
-$GOPATH/src/github.com/dimalinux/spoofsourceip.
+$GOPATH/src/github.com/dimalinux/spoofsourceip/.
 
 
 ## UDP Receiver (udpreceiver)
