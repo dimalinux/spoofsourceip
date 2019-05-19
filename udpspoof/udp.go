@@ -17,7 +17,7 @@ type udpFrameOptions struct {
 
 type serializableNetworkLayer interface {
 	gopacket.NetworkLayer
-	gopacket.SerializableLayer
+	SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error
 }
 
 // createSerializedUDPFrame creates an Ethernet frame encapsulating our UDP
